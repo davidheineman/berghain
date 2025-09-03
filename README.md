@@ -9,9 +9,9 @@ pip install -r requirements.txt
 ### usage
 
 ```sh
-python berghain.py --solver lp --scenario 1
-python berghain.py --solver lp --scenario 2
-python berghain.py --solver lp --scenario 3
+python src/berghain.py --solver lp --scenario 1
+python src/berghain.py --solver lp --scenario 2
+python src/berghain.py --solver lp --scenario 3
 ```
 
 example output:
