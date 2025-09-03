@@ -106,9 +106,14 @@ def main():
         }
     }
     
-    # Initialize the LP policy
+    # Statistics are properly set above
+    
+    # Initialize the LP policy for optimal performance
     if hasattr(solver, 'initialize_policy'):
-        solver.initialize_policy(constraints)
+        if solver.initialize_policy(constraints):
+            print("✅ LP policy initialized successfully")
+        else:
+            print("⚠️  LP policy initialization failed, using fallback logic")
     
     # Run simulation
     print(f"Running simulation with {args.solver} solver...")

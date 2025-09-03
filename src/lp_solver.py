@@ -298,6 +298,13 @@ class LinearProgrammingSolver(BaseSolver):
         if admitted >= 1000:
             return False
 
+        # Ensure required statistics are set
+        if not self.attribute_frequencies or not self.correlation_matrix:
+            raise ValueError(
+                "LP solver requires attribute_frequencies and correlation_matrix to be set. "
+                "Call update_statistics() and initialize_policy() before using the solver."
+            )
+
         # Simplified capacity-aware logic: only intervene when very close to capacity
         remaining_capacity = 1000 - admitted
         

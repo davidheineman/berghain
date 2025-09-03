@@ -42,6 +42,14 @@ class BaseSolver(ABC):
             if "correlations" in stats:
                 print(f"  Correlations: {stats['correlations']}")
         
+        # Initialize LP policy if this is an LP solver
+        if hasattr(self, 'update_statistics') and hasattr(self, 'initialize_policy'):
+            self.update_statistics(game_data)
+            if self.initialize_policy(constraints):
+                print("✅ LP policy initialized successfully")
+            else:
+                print("⚠️  LP policy initialization failed, using fallback logic")
+        
         # Track state
         current_counts = defaultdict(int)
         
