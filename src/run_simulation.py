@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Main script to run simulations of the Berghain game.
-"""
-
 import argparse
 from simulator import run_simulation
 from lp_solver import LinearProgrammingSolver
