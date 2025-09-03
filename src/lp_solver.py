@@ -232,11 +232,10 @@ class LinearProgrammingSolver(BaseSolver):
         for i, attr1 in enumerate(self.attribute_order):
             for j, attr2 in enumerate(self.attribute_order):
                 if i != j:
-                    key = f"{attr1}_{attr2}"
-                    if key in self.correlation_matrix:
-                        correlations[i, j] = self.correlation_matrix[key]
-                    elif f"{attr2}_{attr1}" in self.correlation_matrix:
-                        correlations[i, j] = self.correlation_matrix[f"{attr2}_{attr1}"]
+                    # Handle nested correlation matrix format
+                    if isinstance(self.correlation_matrix, dict) and attr1 in self.correlation_matrix:
+                        if isinstance(self.correlation_matrix[attr1], dict) and attr2 in self.correlation_matrix[attr1]:
+                            correlations[i, j] = self.correlation_matrix[attr1][attr2]
 
         # Fit maximum entropy model
         try:

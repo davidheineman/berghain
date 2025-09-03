@@ -80,12 +80,30 @@ def main():
     }
     
     solver.correlation_matrix = {
-        'techno_lover_well_connected': -0.4696169332674324,
-        'techno_lover_creative': 0.09463317039891586,
-        'techno_lover_berlin_local': -0.6549403815606182,
-        'well_connected_creative': 0.14197259140471485,
-        'well_connected_berlin_local': 0.5724067808436452,
-        'creative_berlin_local': 0.14446459505650772
+        'techno_lover': {
+            'techno_lover': 1,
+            'well_connected': -0.4696169332674324,
+            'creative': 0.09463317039891586,
+            'berlin_local': -0.6549403815606182
+        },
+        'well_connected': {
+            'techno_lover': -0.4696169332674324,
+            'well_connected': 1,
+            'creative': 0.14197259140471485,
+            'berlin_local': 0.5724067808436452
+        },
+        'creative': {
+            'techno_lover': 0.09463317039891586,
+            'well_connected': 0.14197259140471485,
+            'creative': 1,
+            'berlin_local': 0.14446459505650772
+        },
+        'berlin_local': {
+            'techno_lover': -0.6549403815606182,
+            'well_connected': 0.5724067808436452,
+            'creative': 0.14446459505650772,
+            'berlin_local': 1
+        }
     }
     
     # Initialize the LP policy
