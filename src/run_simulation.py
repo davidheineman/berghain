@@ -18,7 +18,7 @@ def run_multiple_simulations(constraints, solver, num_runs=10):
     
     for i in range(num_runs):
         print(f"\n--- Run {i+1}/{num_runs} ---")
-        result = run_simulation(constraints, solver, verbose=False)
+        result = run_simulation(constraints, solver)
         all_results.append(result)
         
         if result['success']:
