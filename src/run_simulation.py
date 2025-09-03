@@ -88,6 +88,10 @@ def main():
         'creative_berlin_local': 0.14446459505650772
     }
     
+    # Initialize the LP policy
+    if hasattr(solver, 'initialize_policy'):
+        solver.initialize_policy(constraints)
+    
     # Run simulation
     print(f"Running simulation with {args.solver} solver...")
     print("Game will continue until exactly 1000 people are admitted.")

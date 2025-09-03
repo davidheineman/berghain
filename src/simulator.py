@@ -148,7 +148,7 @@ class SimulatedGame:
     def play_game(self) -> Dict:
         # Process people until we admit exactly 1000
         person_count = 0
-        while self.admitted < 1000:
+        while self.admitted < 1000 and (self.admitted + self.rejected) < 25_000:
             person = self.simulator.get_next_person()
             if person is None:
                 # If we run out of people from the simulator, generate more
@@ -191,7 +191,7 @@ class SimulatedGame:
                 # Update category statistics
                 category = self._get_category(person.attributes)
                 self.rejected_by_category[category] = self.rejected_by_category.get(category, 0) + 1
-        
+                    
         # Final results
         return self._get_final_results()
     
