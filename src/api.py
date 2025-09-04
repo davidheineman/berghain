@@ -16,7 +16,7 @@ class BerghainAPIClient:
         self.session = requests.Session()
         self.session.timeout = 30
         
-    def create_game(self, scenario: int, player_id: str, max_retries: int = 3) -> Dict:
+    def create_game(self, scenario: int, player_id: str, max_retries: int = 30) -> Dict:
         """Create a new game with retry logic for rate limits."""
         url = f"{self.base_url}/new-game"
         params = {"scenario": scenario, "playerId": player_id}
@@ -28,7 +28,7 @@ class BerghainAPIClient:
                 return response.json()
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429:  # Rate limited
-                    wait_time = (attempt + 1) * 5
+                    wait_time = (attempt + 1) * 30
                     print(f"  Rate limited, waiting {wait_time}s...")
                     time.sleep(wait_time)
                     continue
