@@ -187,15 +187,6 @@ class LinearProgrammingSolver(BaseSolver):
         self.policy = None
         self.is_initialized = False
 
-    def update_statistics(self, game_data: Dict):
-        """Update attribute statistics from game data."""
-        if "attributeStatistics" in game_data:
-            stats = game_data["attributeStatistics"]
-            if "relativeFrequencies" in stats:
-                self.attribute_frequencies = stats["relativeFrequencies"]
-            if "correlations" in stats:
-                self.correlation_matrix = stats["correlations"]
-
     def initialize_policy(self, constraints: List[Constraint]):
         """
         Initialize the LP policy based on current statistics and constraints.
@@ -266,11 +257,11 @@ class LinearProgrammingSolver(BaseSolver):
                     # Use 50% of available people with this attribute (realistic target)
                     adjusted_fraction = available_fraction * 0.5
                     r.append(adjusted_fraction)
-                    # Update the constraint target to match what we're actually trying to achieve
-                    constraint.min_count = int(adjusted_fraction * 1000)
+                    # Store the adjusted target internally but don't modify the original constraint
+                    adjusted_target = int(adjusted_fraction * 1000)
                     print(f"Warning: {constraint.attribute} constraint infeasible. "
                           f"Required: {required_fraction:.3f}, Available: {available_fraction:.3f}. "
-                          f"Adjusting to: {adjusted_fraction:.3f} (target: {constraint.min_count})")
+                          f"Adjusting to: {adjusted_fraction:.3f} (target: {adjusted_target})")
 
         if not groups:
             return False

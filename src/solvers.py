@@ -32,23 +32,17 @@ class BaseSolver(ABC):
 
         url = f"https://berghain.challenges.listenlabs.ai/game/{game_id}"
         
+        # Initialize constraints
+        stats = game_data["attributeStatistics"]
+        self.attribute_frequencies = stats["relativeFrequencies"]
+        self.correlation_matrix = stats["correlations"]
+        self.initialize_policy(constraints)
+        
         self.console.print(url, style="blue")
         print(f"Constraints: {[(c.attribute, c.min_count) for c in constraints]}")
         print(f"Attribute Statistics:")
-        if "attributeStatistics" in game_data:
-            stats = game_data["attributeStatistics"]
-            if "relativeFrequencies" in stats:
-                print(f"  Relative Frequencies: {stats['relativeFrequencies']}")
-            if "correlations" in stats:
-                print(f"  Correlations: {stats['correlations']}")
-        
-        # Initialize LP policy if this is an LP solver
-        if hasattr(self, 'update_statistics') and hasattr(self, 'initialize_policy'):
-            self.update_statistics(game_data)
-            if self.initialize_policy(constraints):
-                print("✅ LP policy initialized successfully")
-            else:
-                print("⚠️  LP policy initialization failed, using fallback logic")
+        print(f"  Relative Frequencies: {self.attribute_frequencies}")
+        print(f"  Correlations: {self.correlation_matrix}")
         
         # Track state
         current_counts = defaultdict(int)
