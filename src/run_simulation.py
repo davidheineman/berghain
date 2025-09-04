@@ -154,7 +154,7 @@ def _sweep_dual_hyperparameters(
 
 def main():
     parser = argparse.ArgumentParser(description='Run Berghain game simulation')
-    parser.add_argument('--solver', choices=['lp', 'dual', 'rejectall'], default='lp', help='Solver to use')
+    parser.add_argument('--solver', choices=['lp', 'dual', 'rejectall', 'rule1'], default='lp', help='Solver to use')
     parser.add_argument('--runs', type=int, default=10, help='Number of simulation runs')
     parser.add_argument('--scenario', type=int, choices=[1, 2, 3], default=1, help='Scenario to run (1, 2, or 3)')
     # DualThresholdSolver hyperparameters
@@ -240,6 +240,9 @@ def main():
             use_rarity=args.dual_use_rarity,
             endgame_R=args.dual_endgame_R,
         )
+    elif args.solver == 'rule1':
+        from solvers import RuleBasedScenario1Solver
+        solver = RuleBasedScenario1Solver()
     elif args.solver == 'rejectall':
         solver = RejectAllSolver()
     else:

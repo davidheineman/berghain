@@ -129,10 +129,10 @@ def get_frequencies(scenario: int):
 def get_distribution(scenario: int):
     if scenario == 1:
         return [
-            ({}, 383/750),  
-            ({'well_dressed': True}, 128/750),  
-            ({'young': True}, 148/750),  
-            ({'young': True, 'well_dressed': True}, 91/750),  
+            ({}, 2373/4600),  
+            ({'well_dressed': True}, 793/4600),  
+            ({'young': True}, 840/4600),  
+            ({'young': True, 'well_dressed': True}, 594/4600),  
         ]
     elif scenario == 2:
         return [
