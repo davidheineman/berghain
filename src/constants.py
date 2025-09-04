@@ -124,22 +124,22 @@ def get_distribution(scenario: int):
         ]
     elif scenario == 2:
         return [
-            ({}, 63/2341),  
-            ({'berlin_local': True}, 136/2341),  
-            ({'creative': True}, 3/2341),  
-            ({'creative': True, 'berlin_local': True}, 3/2341),  
-            ({'well_connected': True}, 72/2341),  
-            ({'well_connected': True, 'berlin_local': True}, 614/2341),  
-            ({'well_connected': True, 'creative': True}, 4/2341),  
-            ({'well_connected': True, 'creative': True, 'berlin_local': True}, 16/2341),  
-            ({'techno_lover': True}, 970/2341),  
-            ({'techno_lover': True, 'berlin_local': True}, 35/2341),  
-            ({'techno_lover': True, 'creative': True}, 13/2341),  
-            ({'techno_lover': True, 'creative': True, 'berlin_local': True}, 11/2341),  
-            ({'techno_lover': True, 'well_connected': True}, 231/2341),  
-            ({'techno_lover': True, 'well_connected': True, 'berlin_local': True}, 85/2341),  
-            ({'techno_lover': True, 'well_connected': True, 'creative': True}, 18/2341),  
-            ({'techno_lover': True, 'well_connected': True, 'creative': True, 'berlin_local': True}, 67/2341),  
+            ({}, 437/14000),  
+            ({'berlin_local': True}, 655/14000),  
+            ({'creative': True}, 13/14000),  
+            ({'creative': True, 'berlin_local': True}, 25/14000),  
+            ({'well_connected': True}, 430/14000),  
+            ({'well_connected': True, 'berlin_local': True}, 3518/14000),  
+            ({'well_connected': True, 'creative': True}, 39/14000),  
+            ({'well_connected': True, 'creative': True, 'berlin_local': True}, 81/14000),  
+            ({'techno_lover': True}, 5858/14000),  
+            ({'techno_lover': True, 'berlin_local': True}, 212/14000),  
+            ({'techno_lover': True, 'creative': True}, 71/14000),  
+            ({'techno_lover': True, 'creative': True, 'berlin_local': True}, 102/14000),  
+            ({'techno_lover': True, 'well_connected': True}, 1379/14000),  
+            ({'techno_lover': True, 'well_connected': True, 'berlin_local': True}, 638/14000),  
+            ({'techno_lover': True, 'well_connected': True, 'creative': True}, 154/14000),  
+            ({'techno_lover': True, 'well_connected': True, 'creative': True, 'berlin_local': True}, 388/14000),  
         ]
     elif scenario == 3:
         return [
