@@ -11,17 +11,23 @@ pip install -r requirements.txt
 simulator:
 
 ```sh
-python src/run_simulation.py --scenario 1
-python src/run_simulation.py --scenario 2
-python src/run_simulation.py --scenario 3
+python src/run_simulation.py --solver dual --scenario 1
+python src/run_simulation.py --solver dual --scenario 2
+python src/run_simulation.py --solver dual --scenario 3
 ```
 
 query api:
 
 ```sh
-python src/berghain.py --solver lp --scenario 1
-python src/berghain.py --solver lp --scenario 2
-python src/berghain.py --solver lp --scenario 3
+python src/berghain.py --solver dual --scenario 1
+python src/berghain.py --solver dual --scenario 2
+python src/berghain.py --solver dual --scenario 3
+```
+
+run `n` trials at the same time
+
+```sh
+python src/berghain.py --solver dual --scenario 3 --trials 3
 ```
 
 example output:

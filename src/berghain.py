@@ -5,6 +5,12 @@ from dual_solver import DualThresholdSolver
 
 DEFAULT_PLAYER_ID = "e44d1e27-daad-4003-bc7d-fbd97d992269"
 
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
+
+def run_single_trial(solver, scenario, player_id):
+    """Run a single trial of the game."""
+    return solver.play_game(scenario, player_id, verbose=False)
 
 def main():
     """Main function with command line interface."""
@@ -34,25 +40,59 @@ def main():
     args = parser.parse_args()
 
     constraints = get_constraints(scenario=args.scenario)
-    if args.solver == "lp":
-        solver = LinearProgrammingSolver(
-            attribute_frequencies=get_frequencies(scenario=args.scenario),
-            correlation_matrix=get_corr(scenario=args.scenario),
-            constraints=constraints,
-            distribution=get_distribution(scenario=args.scenario),
-        )
-    elif args.solver == "dual":
-        solver = DualThresholdSolver(
-            attribute_frequencies=get_frequencies(scenario=args.scenario),
-            correlation_matrix=get_corr(scenario=args.scenario),
-            constraints=constraints,
-            distribution=get_distribution(scenario=args.scenario),
-        )
-        solver.initialize_policy(constraints)
+    
+    def create_solver():
+        if args.solver == "lp":
+            return LinearProgrammingSolver(
+                attribute_frequencies=get_frequencies(scenario=args.scenario),
+                correlation_matrix=get_corr(scenario=args.scenario),
+                constraints=constraints,
+                distribution=get_distribution(scenario=args.scenario),
+            )
+        elif args.solver == "dual":
+            return DualThresholdSolver(
+                attribute_frequencies=get_frequencies(scenario=args.scenario),
+                correlation_matrix=get_corr(scenario=args.scenario),
+                constraints=constraints,
+                distribution=get_distribution(scenario=args.scenario),
+            )
+        else:
+            raise ValueError(args.solver)
+
+    if args.trials == 1:
+        # Single trial - run directly
+        solver = create_solver()
+        result = solver.play_game(args.scenario, args.player_id, verbose=False)
+        print(f"Result: {result} rejections")
     else:
-        raise ValueError(args.solver)
-    result = solver.play_game(args.scenario, args.player_id, verbose=False)
-    print(f"Result: {result} rejections")
+        # Multiple trials - use ThreadPoolExecutor
+        results = []
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for i in range(args.trials):
+                solver = create_solver()
+                future = executor.submit(run_single_trial, solver, args.scenario, args.player_id)
+                futures.append(future)
+            
+            for future in tqdm(futures, desc="Running trials"):
+                result = future.result()
+                results.append(result)
+        
+        # Print summary statistics
+        valid_results = [r for r in results if r != float('-inf')]
+        if valid_results:
+            avg_rejections = sum(valid_results) / len(valid_results)
+            min_rejections = min(valid_results)
+            max_rejections = max(valid_results)
+            success_rate = len(valid_results) / len(results)
+            
+            print(f"Trials completed: {len(results)}")
+            print(f"Success rate: {success_rate:.1%} ({len(valid_results)}/{len(results)})")
+            print(f"Average rejections: {avg_rejections:.1f}")
+            print(f"Min rejections: {min_rejections}")
+            print(f"Max rejections: {max_rejections}")
+        else:
+            print(f"All {len(results)} trials failed")
 
 
 if __name__ == "__main__":

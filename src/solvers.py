@@ -34,10 +34,11 @@ class BaseSolver(ABC):
         self.initialize_policy(constraints)
 
         self.console.print(url, style="blue")
-        print(f"Constraints: {[(c.attribute, c.min_count) for c in constraints]}")
-        print(f"Attribute Statistics:")
-        print(f"  Relative Frequencies: {self.attribute_frequencies}")
-        print(f"  Correlations: {self.correlation_matrix}")
+        if verbose:
+            print(f"Constraints: {[(c.attribute, c.min_count) for c in constraints]}")
+            print(f"Attribute Statistics:")
+            print(f"  Relative Frequencies: {self.attribute_frequencies}")
+            print(f"  Correlations: {self.correlation_matrix}")
 
         # Track state
         current_counts = defaultdict(int)
@@ -128,12 +129,12 @@ class BaseSolver(ABC):
 
         if response["status"] == "completed":
             self.console.print(f"Finished game: {url}", style="blue")
-            return 0
+            return rejected
         else:
             self.console.print(
                 f"Game ended with status {response['status']}: {url}", style="red"
             )
-            return response.get("rejectedCount", 99999)
+            return float('-inf')
 
     def _print_progress_update(
         self,
