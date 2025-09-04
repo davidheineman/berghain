@@ -112,7 +112,7 @@ class BaseSolver(ABC):
             # Print detailed stats on separate lines every 50 people to avoid clutter
             remaining_capacity = 1000 - admitted
 
-            if verbose and decision_count % 50 == 0 or remaining_capacity == 1:
+            if verbose and (decision_count % 50 == 0 or remaining_capacity == 1):
                 self._print_progress_update(
                     constraints=constraints,
                     current_counts=current_counts,
