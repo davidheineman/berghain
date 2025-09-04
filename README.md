@@ -8,6 +8,16 @@ pip install -r requirements.txt
 
 ### usage
 
+simulator:
+
+```sh
+python src/run_simulation.py --scenario 1
+python src/run_simulation.py --scenario 2
+python src/run_simulation.py --scenario 3
+```
+
+query api:
+
 ```sh
 python src/berghain.py --solver lp --scenario 1
 python src/berghain.py --solver lp --scenario 2

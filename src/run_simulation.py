@@ -2,7 +2,7 @@ import argparse
 from typing import Dict, List
 from simulator import SimulatedGame
 from lp_solver import LinearProgrammingSolver
-from constants import get_constraints, get_corr, get_frequencies
+from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from api import Constraint
 
 
@@ -68,6 +68,7 @@ def main():
     solver = LinearProgrammingSolver(
         attribute_frequencies=get_frequencies(scenario=args.scenario),
         correlation_matrix=get_corr(scenario=args.scenario),
+        distribution=get_distribution(scenario=args.scenario),
         constraints=constraints,
     )
 
