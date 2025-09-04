@@ -2,6 +2,7 @@ import argparse
 from typing import Dict, List
 from simulator import SimulatedGame
 from lp_solver import LinearProgrammingSolver
+from dist_solver import DistributionAwareSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from api import Constraint
 
@@ -16,12 +17,19 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
     all_results = []
     successful_runs = 0
     
-    for i in range(num_runs):
-        result = run_simulation(constraints, solver, scenario)
-        all_results.append(result)
-        
-        if result['success']:
-            successful_runs += 1
+    from concurrent.futures import ThreadPoolExecutor
+    
+    def run_single_simulation(i):
+        return run_simulation(constraints, solver, scenario)
+    
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(run_single_simulation, i) for i in range(num_runs)]
+        for future in futures:
+            result = future.result()
+            all_results.append(result)
+            
+            if result['success']:
+                successful_runs += 1
     
     # Calculate averages
     avg_results = {
@@ -57,7 +65,7 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
 
 def main():
     parser = argparse.ArgumentParser(description='Run Berghain game simulation')
-    parser.add_argument('--solver', choices=['lp'], default='lp', help='Solver to use')
+    parser.add_argument('--solver', choices=['lp', 'dist'], default='lp', help='Solver to use')
     parser.add_argument('--runs', type=int, default=10, help='Number of simulation runs')
     parser.add_argument('--scenario', type=int, choices=[1, 2, 3], default=1, help='Scenario to run (1, 2, or 3)')
     
@@ -65,12 +73,18 @@ def main():
 
     constraints = get_constraints(scenario=args.scenario)
     
-    solver = LinearProgrammingSolver(
-        attribute_frequencies=get_frequencies(scenario=args.scenario),
-        correlation_matrix=get_corr(scenario=args.scenario),
-        distribution=get_distribution(scenario=args.scenario),
-        constraints=constraints,
-    )
+    if args.solver == 'lp':
+        solver = LinearProgrammingSolver(
+            attribute_frequencies=get_frequencies(scenario=args.scenario),
+            correlation_matrix=get_corr(scenario=args.scenario),
+            distribution=get_distribution(scenario=args.scenario),
+            constraints=constraints,
+        )
+    elif args.solver == 'dist':
+        solver = DistributionAwareSolver()
+        solver.initialize_policy(constraints, get_distribution(scenario=args.scenario))
+    else:
+        raise ValueError(f"Unknown solver: {args.solver}")
 
     return run_multiple_simulations(constraints, solver, args.runs, args.scenario)
 

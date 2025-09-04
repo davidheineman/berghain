@@ -331,8 +331,11 @@ class LinearProgrammingSolver(BaseSolver):
                 required_fraction = constraint.min_count / 1000.0
 
                 if self.distribution:
-                    # With explicit distribution, add a small cushion to counter sampling variance
-                    safety_margin = 0.02
+                    # With explicit distribution, add a small cushion to counter sampling variance.
+                    # Slightly larger cushion for german_speaker to reduce underfill risk observed in practice.
+                    base_margin = 0.02
+                    extra_margin = 0.01 if constraint.attribute == "german_speaker" else 0.0
+                    safety_margin = base_margin + extra_margin
                     r.append(min(0.99, required_fraction + safety_margin))
                 else:
                     # Feasibility adjustment only in the estimated-distribution mode
