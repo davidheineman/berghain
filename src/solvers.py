@@ -225,3 +225,15 @@ class ConservativeSolver(BaseSolver):
 
         positive_count = sum(1 for attr, value in attributes.items() if value)
         return positive_count >= 2
+
+
+class RejectAllSolver(BaseSolver):
+    def initialize_policy(self, constraints) -> None:
+        # No initialization needed for a trivial always-reject policy
+        return None
+
+    def should_accept(
+        self, attributes: Dict[str, bool], current_counts: Dict[str, int], admitted: int
+    ) -> bool:
+        # Always reject
+        return False

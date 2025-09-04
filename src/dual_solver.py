@@ -1,9 +1,28 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 import math
 from api import Constraint
 from solvers import BaseSolver
 
 class DualThresholdSolver(BaseSolver):
+    SCENARIO_DEFAULTS: Dict[int, Dict[str, object]] = {
+        # Tuned from sweeps
+        2: {
+            "z0": 2.5,
+            "z1": 0.5,
+            "eta0": 0.55,
+            "lambda_max": 12.5,
+            "endgame_R": 32,
+            "use_rarity": False,
+        },
+        3: {
+            "z0": 2.5,
+            "z1": 0.5,
+            "eta0": 0.77,
+            "lambda_max": 12.0,
+            "endgame_R": 33,
+            "use_rarity": False,
+        },
+    }
     def __init__(
         self,
         attribute_frequencies: Dict[str, float],
@@ -18,15 +37,28 @@ class DualThresholdSolver(BaseSolver):
         lambda_max: float = 12.0,
         use_rarity: bool = False,
         endgame_R: int = 33,
+        # Scenario-aware defaults
+        scenario: Optional[int] = None,
+        use_scenario_defaults: bool = True,
     ):
         super().__init__(api_client)
         self.N = int(N)
+        # Start with provided values
         self.z0 = float(z0)
         self.z1 = float(z1)
         self.eta0 = float(eta0)
         self.lambda_max = float(lambda_max)
         self.use_rarity = bool(use_rarity)
         self.endgame_R = int(endgame_R)
+        # Apply scenario-specific defaults when requested
+        if use_scenario_defaults and scenario in self.SCENARIO_DEFAULTS:
+            defaults = self.SCENARIO_DEFAULTS[int(scenario)]
+            self.z0 = float(defaults.get("z0", self.z0))
+            self.z1 = float(defaults.get("z1", self.z1))
+            self.eta0 = float(defaults.get("eta0", self.eta0))
+            self.lambda_max = float(defaults.get("lambda_max", self.lambda_max))
+            self.endgame_R = int(defaults.get("endgame_R", self.endgame_R))
+            self.use_rarity = bool(defaults.get("use_rarity", self.use_rarity))
         self.rho: Dict[str, float] = {}
         self.m: Dict[str, int] = {}
         self.p: Dict[str, float] = {}
