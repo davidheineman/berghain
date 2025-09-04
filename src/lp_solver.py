@@ -81,87 +81,107 @@ def solve_lp(xs, probs, groups, r):
     """
     T = len(xs)
 
-    # Objective: maximize expected admissions while being selective
-    # Add penalty for admitting people who don't help with constraints
-    c = -probs
-    
-    # Add penalty for people who don't help with any constraint
-    constraint_help = np.zeros(T)
+    # Decision variables: a_t for each type t (0..T-1) and y = total expected admissions fraction
+    # Objective: maximize y (equivalently minimize -y)
+    c = np.zeros(T + 1)
+    c[-1] = -1.0
+
+    # Inequality constraints: for each group G with required fraction rk among admitted
+    #   sum_t mask_t * probs_t * a_t - rk * y >= 0  ->  -sum(...) + rk*y <= 0
+    A_ub = []
+    b_ub = []
     for G, rk in zip(groups, r):
-        mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs])
-        constraint_help += mask * rk
-    
-    # Penalize people who don't help with constraints
-    c += (constraint_help == 0) * 0.3
+        mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs], dtype=float)
+        row = np.zeros(T + 1)
+        row[:T] = -mask * probs
+        row[-1] = rk
+        A_ub.append(row)
+        b_ub.append(0.0)
 
-    # Constraints: ensure we meet minimum requirements for each attribute
-    A = []
-    b = []
+    # Equality constraint: y = sum_t probs_t * a_t  ->  sum(probs*a) - y = 0
+    A_eq = np.zeros((1, T + 1))
+    A_eq[0, :T] = probs
+    A_eq[0, -1] = -1.0
+    b_eq = np.array([0.0])
 
-    for G, rk in zip(groups, r):
-        mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs])
-        row = -mask * probs
-        A.append(row)
-        b.append(-rk)
+    # Bounds: 0 <= a_t <= 1, 0 <= y <= 1
+    bounds = [(0.0, 1.0)] * T + [(0.0, 1.0)]
 
-    # No capacity constraint - let the capacity-aware logic handle it
-    # This allows the LP to be more permissive and rely on the capacity-aware logic
-
-    # Solve the linear program
     res = linprog(
-        c, A_ub=np.array(A), b_ub=np.array(b), bounds=[(0, 1)] * T, method="highs"
+        c,
+        A_ub=np.array(A_ub) if A_ub else None,
+        b_ub=np.array(b_ub) if A_ub else None,
+        A_eq=A_eq,
+        b_eq=b_eq,
+        bounds=bounds,
+        method="highs",
     )
 
     if res.success:
-        return res.x
+        return res.x[:T]
     else:
-        # LP infeasible - use a smart fallback that prioritizes rare attributes
-        # Be very selective to save capacity for rare attributes like creative
-        fallback_probs = np.ones(T) * 0.005  # Base 0.5% acceptance (very selective)
-        
-        # Find the creative constraint by looking for the one with the lowest rk
-        # (since creative gets adjusted to a very small value)
-        min_rk = min(r) if r else 0
-        creative_idx = None
-        for i, (G, rk) in enumerate(zip(groups, r)):
-            if rk == min_rk and min_rk < 0.1:  # This should be creative
-                creative_idx = i
-                break
-        
-        # Prioritize creative people heavily since they're so rare
-        if creative_idx is not None:
-            G, rk = groups[creative_idx], r[creative_idx]
-            mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs])
-            fallback_probs += mask * 0.9  # Very high probability for creative people
-        
-        # Give moderate probability to other constraint-helping people
-        for i, (G, rk) in enumerate(zip(groups, r)):
-            if i != creative_idx:  # Skip creative, already handled above
-                mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs])
-                # Give higher probability to berlin_local (also hard to meet)
-                if rk > 0.3:  # berlin_local constraint
-                    fallback_probs += mask * 0.3
-                else:  # other constraints
-                    fallback_probs += mask * 0.2
-        
-        return np.clip(fallback_probs, 0, 1)
+        # Infeasible: fall back to prioritizing constraint-satisfying types
+        fallback_probs = np.ones(T) * 0.05
+        for G, rk in zip(groups, r):
+            mask = np.array([int(all(x[i] == 1 for i in G)) for x in xs], dtype=float)
+            fallback_probs += mask * 0.5
+        return np.clip(fallback_probs, 0.0, 1.0)
 
 
 class OnlinePolicy:
     """Online policy for making acceptance decisions based on pre-computed probabilities."""
 
-    def __init__(self, xs, a):
+    def __init__(self, xs, a, probs=None, deterministic=False):
         self.xs = xs
         self.a = a
+        self.probs = probs
+        self.deterministic = deterministic and probs is not None
+
+        # Quota-based deterministic acceptance to reduce variance when distribution is known
+        self.quotas_remaining = None
+        if self.deterministic:
+            admitted_weights = self.probs * self.a
+            y = admitted_weights.sum()
+            if y > 0:
+                fractions = (
+                    admitted_weights / y
+                )  # fraction among admitted for each type
+                raw_targets = 1000.0 * fractions
+                base = np.floor(raw_targets).astype(int)
+                remainder = 1000 - int(base.sum())
+                # Distribute remaining by largest fractional parts
+                fractional_parts = raw_targets - base
+                if remainder > 0:
+                    top_indices = np.argsort(-fractional_parts)[:remainder]
+                    base[top_indices] += 1
+                self.quotas_remaining = base
+            else:
+                # Fallback to probabilistic if degenerate
+                self.deterministic = False
 
     def accept(self, person):
         """Determine whether to accept a person based on their attributes."""
+        # Find type index
+        idx = None
         for i, x in enumerate(self.xs):
             if np.all(x == person):
-                prob = self.a[i]
-                accepted = np.random.rand() < prob
-                return accepted
-        return False
+                idx = i
+                break
+
+        if idx is None:
+            return False
+
+        if self.deterministic and self.quotas_remaining is not None:
+            if self.quotas_remaining[idx] > 0:
+                self.quotas_remaining[idx] -= 1
+                return True
+            else:
+                return False
+
+        # Probabilistic fallback
+        prob = self.a[idx]
+        accepted = np.random.rand() < prob
+        return accepted
 
 
 class LinearProgrammingSolver(BaseSolver):
@@ -173,7 +193,14 @@ class LinearProgrammingSolver(BaseSolver):
     all constraints with high probability.
     """
 
-    def __init__(self, attribute_frequencies, correlation_matrix, constraints, distribution, api_client=None):
+    def __init__(
+        self,
+        attribute_frequencies,
+        correlation_matrix,
+        constraints,
+        distribution,
+        api_client=None,
+    ):
         """
         Initialize the LP solver.
 
@@ -184,7 +211,10 @@ class LinearProgrammingSolver(BaseSolver):
         self.attribute_frequencies = attribute_frequencies
         self.correlation_matrix = correlation_matrix
         self.distribution = distribution
+        self.constraints = constraints
         self.attribute_order = []
+        self.marginals = None
+        self.priority_attrs = set()
         self.policy = None
         self.is_initialized = False
 
@@ -195,48 +225,98 @@ class LinearProgrammingSolver(BaseSolver):
         Initialize the LP policy based on current statistics and constraints.
         This should be called once we have enough data about attribute frequencies.
         """
-        if not self.attribute_frequencies or not self.correlation_matrix:
-            return False
+        xs = None
+        probs = None
 
-        # Get all unique attributes from constraints
-        all_attributes = set()
-        for constraint in constraints:
-            all_attributes.add(constraint.attribute)
+        # Build attribute universe
+        all_attributes = set(c.attribute for c in constraints)
 
-        # Add any attributes from statistics that aren't in constraints
-        all_attributes.update(self.attribute_frequencies.keys())
+        # If a full distribution is provided, use it directly for xs and probs
+        if self.distribution:
+            # Collect attributes that appear in the distribution
+            for conditions, _p in self.distribution:
+                for attr in conditions.keys():
+                    all_attributes.add(attr)
 
-        # Create ordered list of attributes
-        self.attribute_order = sorted(list(all_attributes))
-        d = len(self.attribute_order)
+            # Also include any attributes we have statistics for (safety)
+            if self.attribute_frequencies:
+                all_attributes.update(self.attribute_frequencies.keys())
 
-        if d == 0:
-            return False
+            self.attribute_order = sorted(list(all_attributes))
+            d = len(self.attribute_order)
+            if d == 0:
+                return False
 
-        # Extract marginals and correlations in the correct order
-        marginals = np.zeros(d)
-        correlations = np.zeros((d, d))
+            # Build xs and probs from the provided distribution
+            xs_list = []
+            probs_list = []
+            for conditions, p in self.distribution:
+                x_vec = np.zeros(d)
+                for i, attr in enumerate(self.attribute_order):
+                    x_vec[i] = 1 if conditions.get(attr, False) else 0
+                xs_list.append(x_vec)
+                probs_list.append(float(p))
 
-        for i, attr in enumerate(self.attribute_order):
-            if attr in self.attribute_frequencies:
-                marginals[i] = self.attribute_frequencies[attr]
-            else:
-                marginals[i] = 0.5  # Default if not in statistics
+            xs = np.array(xs_list)
+            probs = np.array(probs_list, dtype=float)
 
-        for i, attr1 in enumerate(self.attribute_order):
-            for j, attr2 in enumerate(self.attribute_order):
-                if i != j:
-                    # Handle nested correlation matrix format
-                    if isinstance(self.correlation_matrix, dict) and attr1 in self.correlation_matrix:
-                        if isinstance(self.correlation_matrix[attr1], dict) and attr2 in self.correlation_matrix[attr1]:
-                            correlations[i, j] = self.correlation_matrix[attr1][attr2]
+            # Normalize probabilities in case of tiny numerical issues
+            total_p = probs.sum()
+            if total_p > 0:
+                probs = probs / total_p
 
-        # Fit maximum entropy model
-        try:
-            xs, probs = fit_maxent(marginals, correlations)
-        except Exception as e:
-            print(f"Failed to fit maxent model: {e}")
-            return False
+            # Compute marginals from the explicit distribution for feasibility checks
+            marginals = (probs[:, None] * xs).sum(axis=0)
+            self.marginals = marginals
+
+        else:
+            # No explicit distribution; fall back to maxent fit using frequencies and correlations
+            if not self.attribute_frequencies or not self.correlation_matrix:
+                return False
+
+            # Add any attributes from statistics that aren't in constraints
+            all_attributes.update(self.attribute_frequencies.keys())
+
+            # Create ordered list of attributes
+            self.attribute_order = sorted(list(all_attributes))
+            d = len(self.attribute_order)
+
+            if d == 0:
+                return False
+
+            # Extract marginals and correlations in the correct order
+            marginals = np.zeros(d)
+            correlations = np.zeros((d, d))
+
+            for i, attr in enumerate(self.attribute_order):
+                if attr in self.attribute_frequencies:
+                    marginals[i] = self.attribute_frequencies[attr]
+                else:
+                    marginals[i] = 0.5  # Default if not in statistics
+
+            for i, attr1 in enumerate(self.attribute_order):
+                for j, attr2 in enumerate(self.attribute_order):
+                    if i != j:
+                        # Handle nested correlation matrix format
+                        if (
+                            isinstance(self.correlation_matrix, dict)
+                            and attr1 in self.correlation_matrix
+                        ):
+                            if (
+                                isinstance(self.correlation_matrix[attr1], dict)
+                                and attr2 in self.correlation_matrix[attr1]
+                            ):
+                                correlations[i, j] = self.correlation_matrix[attr1][
+                                    attr2
+                                ]
+
+            # Fit maximum entropy model
+            try:
+                xs, probs = fit_maxent(marginals, correlations)
+            except Exception as e:
+                print(f"Failed to fit maxent model: {e}")
+                return False
+            self.marginals = marginals
 
         # Prepare constraint groups and requirements
         groups = []
@@ -247,24 +327,42 @@ class LinearProgrammingSolver(BaseSolver):
             if constraint.attribute in self.attribute_order:
                 attr_idx = self.attribute_order.index(constraint.attribute)
                 groups.append([attr_idx])
-                
-                # Check feasibility: can we actually meet this constraint?
+
                 required_fraction = constraint.min_count / 1000.0
-                available_fraction = marginals[attr_idx]
-                
-                if available_fraction >= required_fraction:
-                    # Feasible constraint
-                    r.append(required_fraction)
+
+                if self.distribution:
+                    # With explicit distribution, add a small cushion to counter sampling variance
+                    safety_margin = 0.02
+                    r.append(min(0.99, required_fraction + safety_margin))
                 else:
-                    # Infeasible constraint - adjust to what's actually possible
-                    # Use 50% of available people with this attribute (realistic target)
-                    adjusted_fraction = available_fraction * 0.5
-                    r.append(adjusted_fraction)
-                    # Store the adjusted target internally but don't modify the original constraint
-                    adjusted_target = int(adjusted_fraction * 1000)
-                    print(f"Warning: {constraint.attribute} constraint infeasible. "
-                          f"Required: {required_fraction:.3f}, Available: {available_fraction:.3f}. "
-                          f"Adjusting to: {adjusted_fraction:.3f} (target: {adjusted_target})")
+                    # Feasibility adjustment only in the estimated-distribution mode
+                    available_fraction = marginals[attr_idx]
+                    if available_fraction >= required_fraction:
+                        r.append(required_fraction)
+                    else:
+                        adjusted_fraction = available_fraction * 0.5
+                        r.append(adjusted_fraction)
+                        adjusted_target = int(adjusted_fraction * 1000)
+                        print(
+                            f"Warning: {constraint.attribute} constraint infeasible. "
+                            f"Required: {required_fraction:.3f}, Available: {available_fraction:.3f}. "
+                            f"Adjusting to: {adjusted_fraction:.3f} (target: {adjusted_target})"
+                        )
+
+        # Identify severely scarce attributes to prioritize when distribution is available
+        if self.distribution and self.marginals is not None:
+            scarcity_threshold = 3.0
+            for constraint in constraints:
+                if constraint.attribute in self.attribute_order:
+                    idx = self.attribute_order.index(constraint.attribute)
+                    req = constraint.min_count / 1000.0
+                    avail = (
+                        float(self.marginals[idx])
+                        if self.marginals is not None
+                        else 0.0
+                    )
+                    if avail > 0 and (req / max(avail, 1e-9)) >= scarcity_threshold:
+                        self.priority_attrs.add(constraint.attribute)
 
         if not groups:
             return False
@@ -272,7 +370,8 @@ class LinearProgrammingSolver(BaseSolver):
         # Solve the linear program
         try:
             a = solve_lp(xs, probs, groups, r)
-            self.policy = OnlinePolicy(xs, a)
+            # Use probabilistic policy by default; deterministic quotas can be too brittle in finite samples
+            self.policy = OnlinePolicy(xs, a, probs=probs, deterministic=False)
             self.is_initialized = True
             return True
         except Exception as e:
@@ -282,7 +381,6 @@ class LinearProgrammingSolver(BaseSolver):
     def should_accept(
         self,
         attributes: Dict[str, bool],
-        constraints: List[Constraint],
         current_counts: Dict[str, int],
         admitted: int,
     ) -> bool:
@@ -293,47 +391,53 @@ class LinearProgrammingSolver(BaseSolver):
             return False
 
         # Ensure required statistics are set
-        if not self.attribute_frequencies or not self.correlation_matrix:
+        if not (
+            (self.attribute_frequencies and self.correlation_matrix)
+            or self.distribution
+        ):
             raise ValueError(
-                "LP solver requires attribute_frequencies and correlation_matrix to be set. "
-                "Call update_statistics() and initialize_policy() before using the solver."
+                "LP solver requires either a full distribution or attribute statistics (frequencies and correlations)."
             )
 
         # Capacity-aware logic with aggressive fallback rule
         remaining_capacity = 1000 - admitted
-        
+
         # Calculate how many people we still need for each constraint (using ORIGINAL targets)
         still_needed = {}
-        for constraint in constraints:
-            still_needed[constraint.attribute] = max(0, constraint.min_count - current_counts[constraint.attribute])
-        
+        for constraint in self.constraints:
+            still_needed[constraint.attribute] = max(
+                0, constraint.min_count - current_counts[constraint.attribute]
+            )
+
         # Check if we're in a critical situation where we need to be very selective
         # This happens when we have limited capacity left and multiple constraints are still unmet
-        unmet_constraints = [attr for attr, needed in still_needed.items() if needed > 0]
-        
-        # FINAL-PUSH fallback: trigger from the very beginning and be maximally selective
-        if len(unmet_constraints) >= 2:
+        unmet_constraints = [
+            attr for attr, needed in still_needed.items() if needed > 0
+        ]
+
+        # FINAL-PUSH fallback: disable when using explicit distribution (LP already enforces ratios)
+        if len(unmet_constraints) >= 2 and not self.distribution:
             # From the very beginning: require at least 2 unmet constraints
             unmet_attributes_satisfied = 0
-            for constraint in constraints:
+            for constraint in self.constraints:
                 if still_needed[constraint.attribute] > 0:
                     if attributes.get(constraint.attribute, False):
                         unmet_attributes_satisfied += 1
-            
+
             if remaining_capacity <= 950:
                 # Very early: require at least 2 unmet constraints
                 if unmet_attributes_satisfied >= 2:
                     return True
                 else:
                     return False
-            
+
             elif remaining_capacity <= 700:
                 # Early-mid game: require at least 3 unmet constraints
                 if unmet_attributes_satisfied >= 3:
                     return True
                 else:
                     return False
-            
+
             elif remaining_capacity <= 400:
                 # Mid-late game: require ALL unmet constraints to be satisfied
                 if unmet_attributes_satisfied == len(unmet_constraints):
@@ -350,7 +454,7 @@ class LinearProgrammingSolver(BaseSolver):
             return self.policy.accept(person_vector)
 
         # Simple fallback: accept if helps with any constraint
-        for constraint in constraints:
+        for constraint in self.constraints:
             if (
                 attributes.get(constraint.attribute, False)
                 and current_counts[constraint.attribute] < constraint.min_count

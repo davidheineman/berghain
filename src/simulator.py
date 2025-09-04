@@ -1,4 +1,3 @@
-import random
 import numpy as np
 from typing import Dict, List, Optional
 from dataclasses import dataclass
@@ -81,7 +80,7 @@ class SimulatedGame:
             
             # Make decision
             should_accept = self.solver.should_accept(
-                person.attributes, self.constraints, self.current_counts, self.admitted
+                person.attributes, self.current_counts, self.admitted
             )
             
             # Record decision
