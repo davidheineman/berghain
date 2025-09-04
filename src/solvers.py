@@ -237,3 +237,21 @@ class RejectAllSolver(BaseSolver):
     ) -> bool:
         # Always reject
         return False
+
+
+class RuleBasedScenario1Solver(BaseSolver):
+    def initialize_policy(self, constraints) -> None:
+        return None
+
+    def should_accept(
+        self, attributes: Dict[str, bool], current_counts: Dict[str, int], admitted: int
+    ) -> bool:
+        if admitted >= 1000:
+            return False
+        N = 1000
+        m = {"young": 600, "well_dressed": 600}
+        R = N - admitted
+        for a in ("young", "well_dressed"):
+            if current_counts.get(a, 0) + max(R - 1, 0) < m[a]:
+                return bool(attributes.get(a, False))
+        return bool(attributes.get("young", False) or attributes.get("well_dressed", False))

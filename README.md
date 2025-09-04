@@ -33,9 +33,11 @@ python src/berghain.py --solver dual --scenario 3
 run `n` trials at the same time
 
 ```sh
+# this will execute 10 trials simultaneously until stopped
 python src/berghain.py --solver dual --scenario 3 --trials 10
 
 # run with nohup
+nohup python src/berghain.py --solver dual --scenario 2 --trials 10 > /tmp/out.out 2>&1 & tail -f /tmp/out.out
 nohup python src/berghain.py --solver dual --scenario 3 --trials 10 > /tmp/out.out 2>&1 & tail -f /tmp/out.out
 ```
 

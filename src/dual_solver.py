@@ -6,6 +6,14 @@ from solvers import BaseSolver
 class DualThresholdSolver(BaseSolver):
     SCENARIO_DEFAULTS: Dict[int, Dict[str, object]] = {
         # Tuned from sweeps
+        1: {
+            "z0": 3.0,
+            "z1": 0.3,
+            "eta0": 0.7,
+            "lambda_max": 16.0,
+            "endgame_R": 10,
+            "use_rarity": True,
+        },
         2: {
             "z0": 2.5,
             "z1": 0.5,
