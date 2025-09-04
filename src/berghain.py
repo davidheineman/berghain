@@ -1,6 +1,5 @@
 import argparse
 import time
-from lp_solver import LinearProgrammingSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from dual_solver import DualThresholdSolver
 from solvers import RejectAllSolver
@@ -45,14 +44,7 @@ def main():
     constraints = get_constraints(scenario=args.scenario)
     
     def create_solver():
-        if args.solver == "lp":
-            return LinearProgrammingSolver(
-                attribute_frequencies=get_frequencies(scenario=args.scenario),
-                correlation_matrix=get_corr(scenario=args.scenario),
-                constraints=constraints,
-                distribution=get_distribution(scenario=args.scenario),
-            )
-        elif args.solver == "dual":
+        if args.solver == "dual":
             return DualThresholdSolver(
                 attribute_frequencies=get_frequencies(scenario=args.scenario),
                 correlation_matrix=get_corr(scenario=args.scenario),
