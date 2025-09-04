@@ -15,9 +15,9 @@ class DistributionAwareSolver:
         self,
         N: int = 1000,
         rng_seed: int = 17,
-        endgame_R: int = 10,
+        endgame_R: int = 20,
         z: float = -8,
-        lambda_max: float = 32.0,
+        lambda_max: float = 64.0,
     ):
         self.N = int(N)
         self.endgame_R = int(endgame_R)

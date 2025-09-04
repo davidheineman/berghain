@@ -19,7 +19,7 @@ class BaseSolver(ABC):
     ) -> bool:
         pass
 
-    def play_game(self, scenario: int, player_id: str) -> int:
+    def play_game(self, scenario: int, player_id: str, verbose: bool = True) -> int:
         # Create game
         game_data = self.api_client.create_game(scenario, player_id)
         game_id = game_data["gameId"]
@@ -111,7 +111,7 @@ class BaseSolver(ABC):
             # Print detailed stats on separate lines every 50 people to avoid clutter
             remaining_capacity = 1000 - admitted
 
-            if decision_count % 50 == 0 or remaining_capacity == 1:
+            if verbose and decision_count % 50 == 0 or remaining_capacity == 1:
                 self._print_progress_update(
                     constraints=constraints,
                     current_counts=current_counts,

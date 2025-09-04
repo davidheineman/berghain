@@ -80,4 +80,7 @@ class YourSolver:
 
 ### Your Task
 
-Please propose an algorithm for solving, and give the minimum number of possible rejections. 
+Please propose an algorithm for solving, and give the minimum number of possible rejections. Here's some ideas:
+
+- We can do multiple runs and we only care care about the *minimum of all runs*, so we can have a policy which may admit too many people, in the hope that at least 1 run is lucky.
+- We have a simulator, so we can fit hyperparameters if needed.
