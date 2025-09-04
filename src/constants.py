@@ -1,7 +1,12 @@
 from api import Constraint
 
 def get_constraints(scenario):
-    if scenario == 2:
+    if scenario == 1:
+        return [
+            Constraint(attribute="young", min_count=600),
+            Constraint(attribute="well_dressed", min_count=600)
+        ]
+    elif scenario == 2:
         return [
             Constraint(attribute="techno_lover", min_count=650),
             Constraint(attribute="well_connected", min_count=450),
@@ -20,7 +25,9 @@ def get_constraints(scenario):
 
 
 def get_corr(scenario: int):
-    if scenario == 2:
+    if scenario == 1:
+        return {'well_dressed': {'well_dressed': 1, 'young': 0.18304299322062992}, 'young': {'well_dressed': 0.18304299322062992, 'young': 1}}
+    elif scenario == 2:
         return {
             'techno_lover': {
                 'techno_lover': 1,
@@ -100,7 +107,9 @@ def get_corr(scenario: int):
         }
 
 def get_frequencies(scenario: int):
-    if scenario == 2:
+    if scenario == 1:
+        return {'well_dressed': 0.3225, 'young': 0.3225}
+    elif scenario == 2:
         return {
             'techno_lover': 0.6265000000000001,
             'well_connected': 0.4700000000000001,
@@ -120,7 +129,10 @@ def get_frequencies(scenario: int):
 def get_distribution(scenario: int):
     if scenario == 1:
         return [
-            ({}, 1.0),  
+            ({}, 383/750),  
+            ({'well_dressed': True}, 128/750),  
+            ({'young': True}, 148/750),  
+            ({'young': True, 'well_dressed': True}, 91/750),  
         ]
     elif scenario == 2:
         return [
