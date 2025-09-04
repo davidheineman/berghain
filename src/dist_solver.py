@@ -9,7 +9,7 @@ class Constraint:
     min_count: int
 
 class DistributionAwareSolver:
-    def __init__(self, N: int = 1000, rng_seed: int = 17, endgame_R: int = 50, z: float = 2.0, lambda_max: float = 64.0):
+    def __init__(self, N: int = 1000, rng_seed: int = 17, endgame_R: int = 20, z: float = 1.2, lambda_max: float = 64.0):
         self.N = int(N)
         self.endgame_R = int(endgame_R)
         self.z = float(z)
@@ -92,6 +92,7 @@ class DistributionAwareSolver:
         R = self.N - admitted
         must = self._guard_must_attrs(current_counts, admitted)
         if must:
+            # When it's mathematically tight, require all critical attributes to be present
             if all(bool(attributes.get(a, False)) for a in must):
                 return True
             return False
@@ -100,9 +101,27 @@ class DistributionAwareSolver:
             n_a = int(current_counts.get(a, 0))
             b_a = self._safety_b(a)
             d[a] = max(0, self.m[a] + b_a - n_a)
+        # Identify whether this person helps any currently needed attribute
+        helps_needed = any(attributes.get(a, False) and d[a] > 0 for a in self.attr_order)
         if R <= self.endgame_R:
             need = [a for a in self.attr_order if d[a] > 0]
             if need and not any(attributes.get(a, False) for a in need):
                 return False
+        # Base acceptance probability from optimized policy
         p_acc = self._type_accept_prob(attributes)
+
+        # If the person does not help any needed attribute, allow small extra acceptance
+        # only when we have provable spare capacity beyond the (conservative) sum of deficits.
+        total_deficit = sum(d.values())
+        if not helps_needed and p_acc <= 0.0:
+            free_capacity = R - sum(d.values())
+            if free_capacity > 0:
+                # Accept with a more generous probability proportional to spare capacity
+                extra_prob = min(0.8, max(0.0, free_capacity / max(R, 1)))
+                p_acc = max(p_acc, extra_prob)
+
+        # If all deficits (with safety margins) are covered, accelerate admissions
+        if total_deficit == 0:
+            p_acc = max(p_acc, 0.9)
+
         return bool(self.rng.random() < p_acc)
