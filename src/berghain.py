@@ -1,9 +1,11 @@
 import argparse
+import time
 from lp_solver import LinearProgrammingSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from dual_solver import DualThresholdSolver
 
-DEFAULT_PLAYER_ID = "e44d1e27-daad-4003-bc7d-fbd97d992269"
+
+
 
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
@@ -65,34 +67,76 @@ def main():
         result = solver.play_game(args.scenario, args.player_id, verbose=False)
         print(f"Result: {result} rejections")
     else:
-        # Multiple trials - use ThreadPoolExecutor
-        results = []
-        with ThreadPoolExecutor() as executor:
-            futures = []
-            for i in range(args.trials):
-                solver = create_solver()
-                future = executor.submit(run_single_trial, solver, args.scenario, args.player_id)
-                futures.append(future)
-            
-            for future in tqdm(futures, desc="Running trials"):
-                result = future.result()
-                results.append(result)
+        # Multiple trials - keep running until interrupted
+        all_results = []
+        batch_num = 1
         
-        # Print summary statistics
-        valid_results = [r for r in results if r != float('-inf')]
-        if valid_results:
-            avg_rejections = sum(valid_results) / len(valid_results)
-            min_rejections = min(valid_results)
-            max_rejections = max(valid_results)
-            success_rate = len(valid_results) / len(results)
+        try:
+            while True:
+                print(f"\n=== Batch {batch_num} ===")
+                batch_results = []
+                
+                with ThreadPoolExecutor() as executor:
+                    futures = []
+                    for i in range(args.trials):
+                        solver = create_solver()
+                        future = executor.submit(run_single_trial, solver, args.scenario, args.player_id)
+                        futures.append(future)
+                    
+                    for future in tqdm(futures, desc=f"Running batch {batch_num}"):
+                        result = future.result()
+                        batch_results.append(result)
+                
+                all_results.extend(batch_results)
+                
+                # Print batch statistics
+                valid_batch_results = [r for r in batch_results if r != float('-inf')]
+                if valid_batch_results:
+                    avg_rejections = sum(valid_batch_results) / len(valid_batch_results)
+                    min_rejections = min(valid_batch_results)
+                    max_rejections = max(valid_batch_results)
+                    success_rate = len(valid_batch_results) / len(batch_results)
+                    
+                    print(f"Batch {batch_num} - Trials: {len(batch_results)}, Success: {success_rate:.1%}, Avg: {avg_rejections:.1f}, Min: {min_rejections}, Max: {max_rejections}")
+                else:
+                    print(f"Batch {batch_num} - All {len(batch_results)} trials failed")
+                
+                # Print cumulative statistics
+                valid_all_results = [r for r in all_results if r != float('-inf')]
+                if valid_all_results:
+                    cumulative_avg = sum(valid_all_results) / len(valid_all_results)
+                    cumulative_min = min(valid_all_results)
+                    cumulative_max = max(valid_all_results)
+                    cumulative_success_rate = len(valid_all_results) / len(all_results)
+                    
+                    print(f"Cumulative - Trials: {len(all_results)}, Success: {cumulative_success_rate:.1%}, Avg: {cumulative_avg:.1f}, Min: {cumulative_min}, Max: {cumulative_max}")
+                
+                batch_num += 1
+
+                # Wait 5 minutes between batches with progress bar
+                wait_time = 300
+                for _ in tqdm(range(wait_time), desc="Waiting between batches", unit="s"):
+                    time.sleep(1)
+                
+        except KeyboardInterrupt:
+            print(f"\nStopped after {len(all_results)} total trials across {batch_num - 1} batches")
             
-            print(f"Trials completed: {len(results)}")
-            print(f"Success rate: {success_rate:.1%} ({len(valid_results)}/{len(results)})")
-            print(f"Average rejections: {avg_rejections:.1f}")
-            print(f"Min rejections: {min_rejections}")
-            print(f"Max rejections: {max_rejections}")
-        else:
-            print(f"All {len(results)} trials failed")
+            # Final summary
+            valid_results = [r for r in all_results if r != float('-inf')]
+            if valid_results:
+                final_avg = sum(valid_results) / len(valid_results)
+                final_min = min(valid_results)
+                final_max = max(valid_results)
+                final_success_rate = len(valid_results) / len(all_results)
+                
+                print(f"Final Summary:")
+                print(f"  Total trials: {len(all_results)}")
+                print(f"  Success rate: {final_success_rate:.1%} ({len(valid_results)}/{len(all_results)})")
+                print(f"  Average rejections: {final_avg:.1f}")
+                print(f"  Min rejections: {final_min}")
+                print(f"  Max rejections: {final_max}")
+            else:
+                print(f"All {len(all_results)} trials failed")
 
 
 if __name__ == "__main__":
