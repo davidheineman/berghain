@@ -296,25 +296,47 @@ class LinearProgrammingSolver(BaseSolver):
                 "Call update_statistics() and initialize_policy() before using the solver."
             )
 
-        # Simplified capacity-aware logic: only intervene when very close to capacity
+        # Capacity-aware logic with aggressive fallback rule
         remaining_capacity = 1000 - admitted
         
-        # Calculate how many people we still need for each constraint
+        # Calculate how many people we still need for each constraint (using ORIGINAL targets)
         still_needed = {}
         for constraint in constraints:
             still_needed[constraint.attribute] = max(0, constraint.min_count - current_counts[constraint.attribute])
         
-        # # If we're in the final stretch (last 10 spots), be extremely aggressive
-        # if remaining_capacity <= 10:
-        #     # Accept anyone who helps with an unsatisfied constraint
-        #     for constraint in constraints:
-        #         if (
-        #             attributes.get(constraint.attribute, False)
-        #             and still_needed[constraint.attribute] > 0
-        #         ):
-        #             return True
-        #     # Reject everyone else when very close to capacity
-        #     return False
+        # Check if we're in a critical situation where we need to be very selective
+        # This happens when we have limited capacity left and multiple constraints are still unmet
+        unmet_constraints = [attr for attr, needed in still_needed.items() if needed > 0]
+        
+        # FINAL-PUSH fallback: trigger from the very beginning and be maximally selective
+        if len(unmet_constraints) >= 2:
+            # From the very beginning: require at least 2 unmet constraints
+            unmet_attributes_satisfied = 0
+            for constraint in constraints:
+                if still_needed[constraint.attribute] > 0:
+                    if attributes.get(constraint.attribute, False):
+                        unmet_attributes_satisfied += 1
+            
+            if remaining_capacity <= 950:
+                # Very early: require at least 2 unmet constraints
+                if unmet_attributes_satisfied >= 2:
+                    return True
+                else:
+                    return False
+            
+            elif remaining_capacity <= 700:
+                # Early-mid game: require at least 3 unmet constraints
+                if unmet_attributes_satisfied >= 3:
+                    return True
+                else:
+                    return False
+            
+            elif remaining_capacity <= 400:
+                # Mid-late game: require ALL unmet constraints to be satisfied
+                if unmet_attributes_satisfied == len(unmet_constraints):
+                    return True
+                else:
+                    return False
 
         # Use LP policy if available
         if self.policy:
