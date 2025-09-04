@@ -18,7 +18,6 @@ class BaseSolver(ABC):
     @abstractmethod
     def should_accept(self, attributes: Dict[str, bool], constraints: List[Constraint],
                      current_counts: Dict[str, int], admitted: int) -> bool:
-        """Determine whether to accept or reject a person."""
         pass
     
     def play_game(self, scenario: int, player_id: str) -> int:
@@ -70,8 +69,7 @@ class BaseSolver(ABC):
         decision_count = 0
         
         # Initialize progress bar
-        capacity = 2000
-        pbar = tqdm(total=capacity, desc="Processing people", unit="person", 
+        pbar = tqdm(total=1000, desc="Admitted people", unit="person", 
                     bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
         
         while response["status"] == "running":
@@ -107,8 +105,9 @@ class BaseSolver(ABC):
             
             decision_count += 1
             
-            # Update progress bar
-            pbar.update(1)
+            # Update progress bar with admitted count
+            pbar.n = admitted
+            pbar.refresh()
             
             # Print detailed stats on separate lines every 50 people to avoid clutter
             remaining_capacity = 1000 - admitted
@@ -176,7 +175,6 @@ class GreedySolver(BaseSolver):
     
     def should_accept(self, attributes: Dict[str, bool], constraints: List[Constraint],
                      current_counts: Dict[str, int], admitted: int) -> bool:
-        """Accept anyone with at least one positive attribute."""
         if admitted >= 1000:
             return False
         
@@ -189,7 +187,6 @@ class ConservativeSolver(BaseSolver):
     
     def should_accept(self, attributes: Dict[str, bool], constraints: List[Constraint],
                      current_counts: Dict[str, int], admitted: int) -> bool:
-        """Only accept people with multiple positive attributes."""
         if admitted >= 1000:
             return False
         

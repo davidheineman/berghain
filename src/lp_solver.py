@@ -173,7 +173,7 @@ class LinearProgrammingSolver(BaseSolver):
     all constraints with high probability.
     """
 
-    def __init__(self, api_client=None):
+    def __init__(self, attribute_frequencies, correlation_matrix, constraints, api_client=None):
         """
         Initialize the LP solver.
 
@@ -181,11 +181,13 @@ class LinearProgrammingSolver(BaseSolver):
             api_client: API client for the game
         """
         super().__init__(api_client)
-        self.attribute_frequencies = {}
-        self.correlation_matrix = {}
+        self.attribute_frequencies = attribute_frequencies
+        self.correlation_matrix = correlation_matrix
         self.attribute_order = []
         self.policy = None
         self.is_initialized = False
+
+        self.initialize_policy(constraints)
 
     def initialize_policy(self, constraints: List[Constraint]):
         """

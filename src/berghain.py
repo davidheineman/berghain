@@ -3,6 +3,7 @@ import argparse
 from typing import List
 from solvers import GreedySolver, ConservativeSolver
 from lp_solver import LinearProgrammingSolver
+from constants import get_constraints, get_corr, get_frequencies
 
 def run_trials(scenario: int, player_id: str, solver_class, num_trials: int = 3) -> List[int]:
     """Run multiple trials with rate limit handling."""
@@ -66,7 +67,12 @@ def main():
             results = run_trials(scenario, args.player_id, solver_class, num_trials)
             all_results[scenario] = results
         else:
-            solver = solver_class()
+            constraints = get_constraints(scenario=scenario)
+            solver = solver_class(
+                attribute_frequencies=get_frequencies(scenario=scenario),
+                correlation_matrix=get_corr(scenario=scenario),
+                constraints=constraints,
+            )
             result = solver.play_game(scenario, args.player_id)
             print(f"Result: {result} rejections")
 

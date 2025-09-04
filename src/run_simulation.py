@@ -1,26 +1,27 @@
 import argparse
-from simulator import run_simulation
+from typing import Dict, List
+from simulator import SimulatedGame
 from lp_solver import LinearProgrammingSolver
+from constants import get_constraints, get_corr, get_frequencies
 from api import Constraint
 
 
+def run_simulation(constraints: List[Constraint], solver, scenario: int = 1) -> Dict:
+    game = SimulatedGame(constraints, solver, scenario)
+    results = game.play_game()
+    return results
+
+
 def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
-    """Run multiple simulations and return averaged results."""
-    print(f"Running {num_runs} simulations for scenario {scenario}...")
-    
     all_results = []
     successful_runs = 0
     
     for i in range(num_runs):
-        print(f"\n--- Run {i+1}/{num_runs} ---")
         result = run_simulation(constraints, solver, scenario)
         all_results.append(result)
         
         if result['success']:
             successful_runs += 1
-            print(f"✅ Run {i+1}: SUCCESS")
-        else:
-            print(f"❌ Run {i+1}: FAILED")
     
     # Calculate averages
     avg_results = {
@@ -29,8 +30,6 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
         'avg_rejected': sum(r['rejected'] for r in all_results) / num_runs,
         'avg_constraint_satisfaction': {}
     }
-    
-    # Average constraint satisfaction
     for constraint in constraints:
         attr = constraint.attribute
         avg_satisfied = sum(r['constraint_status'][attr]['current'] for r in all_results) / num_runs
@@ -40,17 +39,19 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
             'percentage': avg_satisfied / constraint.min_count * 100
         }
     
-    # Print summary
-    print(f"\n{'='*60}")
-    print("MULTI-RUN SIMULATION SUMMARY")
-    print(f"{'='*60}")
+    # Print results
     print(f"Success Rate: {successful_runs}/{num_runs} ({avg_results['success_rate']*100:.1f}%)")
     print(f"Average Admitted: {avg_results['avg_admitted']:.0f}/1000")
     print(f"Average Rejected: {avg_results['avg_rejected']:.0f}")
     print("\nAverage Constraint Satisfaction:")
     for attr, stats in avg_results['avg_constraint_satisfaction'].items():
-        status = "✓" if stats['satisfied'] >= stats['required'] else "✗"
-        print(f"  {attr}: {stats['satisfied']:.0f}/{stats['required']} ({stats['percentage']:.1f}%) {status}")
+        if stats['satisfied'] >= stats['required']:
+            status = "\033[92m✓\033[0m"  # Green checkmark
+            color = "\033[92m"  # Green
+        else:
+            status = "\033[91m✗\033[0m"  # Red X
+            color = "\033[91m"  # Red
+        print(f"  {attr}: {color}{stats['satisfied']:.0f}/{stats['required']} ({stats['percentage']:.1f}%)\033[0m {status}")
     
     return avg_results
 
@@ -58,132 +59,17 @@ def main():
     parser = argparse.ArgumentParser(description='Run Berghain game simulation')
     parser.add_argument('--solver', choices=['lp'], default='lp', help='Solver to use')
     parser.add_argument('--runs', type=int, default=10, help='Number of simulation runs')
-    parser.add_argument('--single', action='store_true', help='Run single simulation instead of multiple')
     parser.add_argument('--scenario', type=int, choices=[1, 2, 3], default=1, help='Scenario to run (1, 2, or 3)')
     
     args = parser.parse_args()
+
+    constraints = get_constraints(scenario=args.scenario)
     
-    if args.scenario == 2:
-        constraints = [
-            Constraint(attribute="techno_lover", min_count=650),
-            Constraint(attribute="well_connected", min_count=450),
-            Constraint(attribute="creative", min_count=300),
-            Constraint(attribute="berlin_local", min_count=750)
-        ]
-    elif args.scenario == 3:
-        constraints = [
-            Constraint(attribute="underground_veteran", min_count=500),
-            Constraint(attribute="international", min_count=650),
-            Constraint(attribute="fashion_forward", min_count=550),
-            Constraint(attribute="queer_friendly", min_count=250),
-            Constraint(attribute="vinyl_collector", min_count=200),
-            Constraint(attribute="german_speaker", min_count=800)
-        ]
-    
-    solver = LinearProgrammingSolver()
-    
-    if args.scenario == 2:
-        solver.attribute_frequencies = {
-            'techno_lover': 0.6265000000000001,
-            'well_connected': 0.4700000000000001,
-            'creative': 0.06227,
-            'berlin_local': 0.398
-        }
-        
-        solver.correlation_matrix = {
-            'techno_lover': {
-                'techno_lover': 1,
-                'well_connected': -0.4696169332674324,
-                'creative': 0.09463317039891586,
-                'berlin_local': -0.6549403815606182
-            },
-            'well_connected': {
-                'techno_lover': -0.4696169332674324,
-                'well_connected': 1,
-                'creative': 0.14197259140471485,
-                'berlin_local': 0.5724067808436452
-            },
-            'creative': {
-                'techno_lover': 0.09463317039891586,
-                'well_connected': 0.14197259140471485,
-                'creative': 1,
-                'berlin_local': 0.14446459505650772
-            },
-            'berlin_local': {
-                'techno_lover': -0.6549403815606182,
-                'well_connected': 0.5724067808436452,
-                'creative': 0.14446459505650772,
-                'berlin_local': 1
-            }
-        }
-    elif args.scenario == 3:
-        solver.attribute_frequencies = {
-            'underground_veteran': 0.6794999999999999,
-            'international': 0.5735,
-            'fashion_forward': 0.6910000000000002,
-            'queer_friendly': 0.04614,
-            'vinyl_collector': 0.044539999999999996,
-            'german_speaker': 0.4565000000000001
-        }
-        
-        solver.correlation_matrix = {
-            'underground_veteran': {
-                'underground_veteran': 1,
-                'international': -0.08110175777152992,
-                'fashion_forward': -0.1696563475505309,
-                'queer_friendly': 0.03719928376753885,
-                'vinyl_collector': 0.07223521156389842,
-                'german_speaker': 0.11188766703422799
-            },
-            'international': {
-                'underground_veteran': -0.08110175777152992,
-                'international': 1,
-                'fashion_forward': 0.375711059360155,
-                'queer_friendly': 0.0036693314388711686,
-                'vinyl_collector': -0.03083247098181075,
-                'german_speaker': -0.7172529382519395
-            },
-            'fashion_forward': {
-                'underground_veteran': -0.1696563475505309,
-                'international': 0.375711059360155,
-                'fashion_forward': 1,
-                'queer_friendly': -0.0034530926793377476,
-                'vinyl_collector': -0.11024719606358546,
-                'german_speaker': -0.3521024461597403
-            },
-            'queer_friendly': {
-                'underground_veteran': 0.03719928376753885,
-                'international': 0.0036693314388711686,
-                'fashion_forward': -0.0034530926793377476,
-                'queer_friendly': 1,
-                'vinyl_collector': 0.47990640803167306,
-                'german_speaker': 0.04797381132680503
-            },
-            'vinyl_collector': {
-                'underground_veteran': 0.07223521156389842,
-                'international': -0.03083247098181075,
-                'fashion_forward': -0.11024719606358546,
-                'queer_friendly': 0.47990640803167306,
-                'vinyl_collector': 1,
-                'german_speaker': 0.09984452286269897
-            },
-            'german_speaker': {
-                'underground_veteran': 0.11188766703422799,
-                'international': -0.7172529382519395,
-                'fashion_forward': -0.3521024461597403,
-                'queer_friendly': 0.04797381132680503,
-                'vinyl_collector': 0.09984452286269897,
-                'german_speaker': 1
-            }
-        }
-    
-    solver.initialize_policy(constraints)
-    
-    # Run simulation
-    print(f"Running simulation with {args.solver} solver for scenario {args.scenario}...")
-    print("Game will continue until exactly 1000 people are admitted.")
-    print(f"Constraints: {[f'{c.attribute}:{c.min_count}' for c in constraints]}")
-    print()
+    solver = LinearProgrammingSolver(
+        attribute_frequencies=get_frequencies(scenario=args.scenario),
+        correlation_matrix=get_corr(scenario=args.scenario),
+        constraints=constraints,
+    )
 
     return run_multiple_simulations(constraints, solver, args.runs, args.scenario)
 
