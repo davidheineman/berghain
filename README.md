@@ -8,6 +8,12 @@ pip install -r requirements.txt
 
 ### usage
 
+dummy solver that rejects everyone (useful for extracting the full distribution):
+
+```sh
+python src/run_simulation.py --solver rejectall --scenario 2 --runs 1
+```
+
 simulator:
 
 ```sh
@@ -27,7 +33,10 @@ python src/berghain.py --solver dual --scenario 3
 run `n` trials at the same time
 
 ```sh
-python src/berghain.py --solver dual --scenario 3 --trials 3
+python src/berghain.py --solver dual --scenario 3 --trials 10
+
+# run with nohup
+nohup python src/berghain.py --solver dual --scenario 3 --trials 10 > /tmp/out.out 2>&1 & tail -f /tmp/out.out
 ```
 
 example output:
@@ -58,3 +67,8 @@ example output:
   Constraints: techno_lover: 631/650 (97.1%) | well_connected: 497/450 (110.4%) | creative: 70/300 (23.3%) | berlin_local: 436/750 (58.1%)
 Game ended with status failed: https://berghain.challenges.listenlabs.ai/game/e039817a-3431-4955-bd97-ec255c625492
 ```
+
+
+
+
+?

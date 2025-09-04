@@ -3,6 +3,7 @@ import time
 from lp_solver import LinearProgrammingSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from dual_solver import DualThresholdSolver
+from solvers import RejectAllSolver
 
 
 
@@ -34,7 +35,7 @@ def main():
     parser.add_argument(
         "--solver",
         type=str,
-        choices=["greedy", "conservative", "lp", "dual"],
+        choices=["greedy", "conservative", "lp", "dual", "rejectall"],
         default="lp",
         help="Solver strategy to use",
     )
@@ -58,13 +59,15 @@ def main():
                 constraints=constraints,
                 distribution=get_distribution(scenario=args.scenario),
             )
+        elif args.solver == "rejectall":
+            return RejectAllSolver()
         else:
             raise ValueError(args.solver)
 
     if args.trials == 1:
         # Single trial - run directly
         solver = create_solver()
-        result = solver.play_game(args.scenario, args.player_id, verbose=False)
+        result = solver.play_game(args.scenario, args.player_id, verbose=True)
         print(f"Result: {result} rejections")
     else:
         # Multiple trials - keep running until interrupted
