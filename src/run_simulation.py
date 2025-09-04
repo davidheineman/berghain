@@ -72,7 +72,12 @@ def main():
         ]
     elif args.scenario == 3:
         constraints = [
-            
+            Constraint(attribute="underground_veteran", min_count=500),
+            Constraint(attribute="international", min_count=650),
+            Constraint(attribute="fashion_forward", min_count=550),
+            Constraint(attribute="queer_friendly", min_count=250),
+            Constraint(attribute="vinyl_collector", min_count=200),
+            Constraint(attribute="german_speaker", min_count=800)
         ]
     
     solver = LinearProgrammingSolver()
@@ -112,7 +117,65 @@ def main():
             }
         }
     elif args.scenario == 3:
-        raise
+        solver.attribute_frequencies = {
+            'underground_veteran': 0.6794999999999999,
+            'international': 0.5735,
+            'fashion_forward': 0.6910000000000002,
+            'queer_friendly': 0.04614,
+            'vinyl_collector': 0.044539999999999996,
+            'german_speaker': 0.4565000000000001
+        }
+        
+        solver.correlation_matrix = {
+            'underground_veteran': {
+                'underground_veteran': 1,
+                'international': -0.08110175777152992,
+                'fashion_forward': -0.1696563475505309,
+                'queer_friendly': 0.03719928376753885,
+                'vinyl_collector': 0.07223521156389842,
+                'german_speaker': 0.11188766703422799
+            },
+            'international': {
+                'underground_veteran': -0.08110175777152992,
+                'international': 1,
+                'fashion_forward': 0.375711059360155,
+                'queer_friendly': 0.0036693314388711686,
+                'vinyl_collector': -0.03083247098181075,
+                'german_speaker': -0.7172529382519395
+            },
+            'fashion_forward': {
+                'underground_veteran': -0.1696563475505309,
+                'international': 0.375711059360155,
+                'fashion_forward': 1,
+                'queer_friendly': -0.0034530926793377476,
+                'vinyl_collector': -0.11024719606358546,
+                'german_speaker': -0.3521024461597403
+            },
+            'queer_friendly': {
+                'underground_veteran': 0.03719928376753885,
+                'international': 0.0036693314388711686,
+                'fashion_forward': -0.0034530926793377476,
+                'queer_friendly': 1,
+                'vinyl_collector': 0.47990640803167306,
+                'german_speaker': 0.04797381132680503
+            },
+            'vinyl_collector': {
+                'underground_veteran': 0.07223521156389842,
+                'international': -0.03083247098181075,
+                'fashion_forward': -0.11024719606358546,
+                'queer_friendly': 0.47990640803167306,
+                'vinyl_collector': 1,
+                'german_speaker': 0.09984452286269897
+            },
+            'german_speaker': {
+                'underground_veteran': 0.11188766703422799,
+                'international': -0.7172529382519395,
+                'fashion_forward': -0.3521024461597403,
+                'queer_friendly': 0.04797381132680503,
+                'vinyl_collector': 0.09984452286269897,
+                'german_speaker': 1
+            }
+        }
     
     solver.initialize_policy(constraints)
     
