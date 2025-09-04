@@ -19,32 +19,105 @@ class GameSimulator:
     Simulator for the Berghain game that generates people based on a given distribution.
     """
     
-    def __init__(self, constraints: List[Constraint], total_people: int = 2000):
+    def __init__(self, constraints: List[Constraint], total_people: int = 2000, scenario: int = 1):
         self.constraints = constraints
         self.total_people = total_people
         self.people_generated = 0
+        self.scenario = scenario
         
-        # Define the distribution based on the provided statistics
-        # This represents the probability of each attribute combination
-        self.distribution = [
-            # Format: (attributes_dict, probability)
-            ({}, 63/2341),  # none: 63/2341 total people
-            ({'berlin_local': True}, 136/2341),  # berlin_local: 136/2341 (30+106)
-            ({'creative': True}, 3/2341),  # creative: 3/2341 (2+1)
-            ({'creative': True, 'berlin_local': True}, 3/2341),  # creative + berlin_local: 3/2341 (3+0)
-            ({'well_connected': True}, 72/2341),  # well_connected: 72/2341 (21+51)
-            ({'well_connected': True, 'berlin_local': True}, 614/2341),  # well_connected + berlin_local: 614/2341 (297+317)
-            ({'well_connected': True, 'creative': True}, 4/2341),  # well_connected + creative: 4/2341 (4+0)
-            ({'well_connected': True, 'creative': True, 'berlin_local': True}, 16/2341),  # well_connected + creative + berlin_local: 16/2341 (16+0)
-            ({'techno_lover': True}, 970/2341),  # techno_lover: 970/2341 (283+687)
-            ({'techno_lover': True, 'berlin_local': True}, 35/2341),  # techno_lover + berlin_local: 35/2341 (23+12)
-            ({'techno_lover': True, 'creative': True}, 13/2341),  # techno_lover + creative: 13/2341 (13+0)
-            ({'techno_lover': True, 'creative': True, 'berlin_local': True}, 11/2341),  # techno_lover + creative + berlin_local: 11/2341 (11+0)
-            ({'techno_lover': True, 'well_connected': True}, 231/2341),  # techno_lover + well_connected: 231/2341 (138+93)
-            ({'techno_lover': True, 'well_connected': True, 'berlin_local': True}, 85/2341),  # techno_lover + well_connected + berlin_local: 85/2341 (73+12)
-            ({'techno_lover': True, 'well_connected': True, 'creative': True}, 18/2341),  # techno_lover + well_connected + creative: 18/2341 (18+0)
-            ({'techno_lover': True, 'well_connected': True, 'creative': True, 'berlin_local': True}, 67/2341),  # techno_lover + well_connected + creative + berlin_local: 67/2341 (67+0)
-        ]
+        
+        if scenario == 1:
+            self.distribution = [
+                ({}, 1.0),  
+            ]
+        elif scenario == 2:
+            self.distribution = [
+                ({}, 63/2341),  
+                ({'berlin_local': True}, 136/2341),  
+                ({'creative': True}, 3/2341),  
+                ({'creative': True, 'berlin_local': True}, 3/2341),  
+                ({'well_connected': True}, 72/2341),  
+                ({'well_connected': True, 'berlin_local': True}, 614/2341),  
+                ({'well_connected': True, 'creative': True}, 4/2341),  
+                ({'well_connected': True, 'creative': True, 'berlin_local': True}, 16/2341),  
+                ({'techno_lover': True}, 970/2341),  
+                ({'techno_lover': True, 'berlin_local': True}, 35/2341),  
+                ({'techno_lover': True, 'creative': True}, 13/2341),  
+                ({'techno_lover': True, 'creative': True, 'berlin_local': True}, 11/2341),  
+                ({'techno_lover': True, 'well_connected': True}, 231/2341),  
+                ({'techno_lover': True, 'well_connected': True, 'berlin_local': True}, 85/2341),  
+                ({'techno_lover': True, 'well_connected': True, 'creative': True}, 18/2341),  
+                ({'techno_lover': True, 'well_connected': True, 'creative': True, 'berlin_local': True}, 67/2341),  
+            ]
+        elif scenario == 3:
+            self.distribution = [
+                ({}, 211/16349),  
+                ({'german_speaker': True}, 361/16349),  
+                ({'vinyl_collector': True}, 3/16349),  
+                ({'vinyl_collector': True, 'german_speaker': True}, 13/16349),  
+                ({'queer_friendly': True}, 2/16349),  
+                ({'queer_friendly': True, 'german_speaker': True}, 4/16349),  
+                ({'queer_friendly': True, 'vinyl_collector': True}, 4/16349),  
+                ({'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 4/16349),  
+                ({'fashion_forward': True}, 218/16349),  
+                ({'fashion_forward': True, 'german_speaker': True}, 1024/16349),  
+                ({'fashion_forward': True, 'vinyl_collector': True}, 5/16349),  
+                ({'fashion_forward': True, 'vinyl_collector': True, 'german_speaker': True}, 7/16349),  
+                ({'fashion_forward': True, 'queer_friendly': True}, 6/16349),  
+                ({'fashion_forward': True, 'queer_friendly': True, 'german_speaker': True}, 16/16349),  
+                ({'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True}, 7/16349),  
+                ({'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 9/16349),  
+                ({'international': True}, 270/16349),  
+                ({'international': True, 'german_speaker': True}, 91/16349),  
+                ({'international': True, 'vinyl_collector': True}, 3/16349),  
+                ({'international': True, 'vinyl_collector': True, 'german_speaker': True}, 2/16349),  
+                ({'international': True, 'queer_friendly': True}, 4/16349),  
+                ({'international': True, 'queer_friendly': True, 'german_speaker': True}, 3/16349),  
+                ({'international': True, 'queer_friendly': True, 'vinyl_collector': True}, 7/16349),  
+                ({'international': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 7/16349),  
+                ({'international': True, 'fashion_forward': True}, 2576/16349),  
+                ({'international': True, 'fashion_forward': True, 'german_speaker': True}, 351/16349),  
+                ({'international': True, 'fashion_forward': True, 'vinyl_collector': True}, 13/16349),  
+                ({'international': True, 'fashion_forward': True, 'vinyl_collector': True, 'german_speaker': True}, 8/16349),  
+                ({'international': True, 'fashion_forward': True, 'queer_friendly': True}, 32/16349),  
+                ({'international': True, 'fashion_forward': True, 'queer_friendly': True, 'german_speaker': True}, 29/16349),  
+                ({'international': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True}, 12/16349),  
+                ({'international': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 15/16349),  
+                ({'underground_veteran': True}, 113/16349),  
+                ({'underground_veteran': True, 'german_speaker': True}, 2525/16349),  
+                ({'underground_veteran': True, 'vinyl_collector': True}, 31/16349),  
+                ({'underground_veteran': True, 'vinyl_collector': True, 'german_speaker': True}, 131/16349),  
+                ({'underground_veteran': True, 'queer_friendly': True}, 4/16349),  
+                ({'underground_veteran': True, 'queer_friendly': True, 'german_speaker': True}, 27/16349),  
+                ({'underground_veteran': True, 'queer_friendly': True, 'vinyl_collector': True}, 14/16349),  
+                ({'underground_veteran': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 53/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True}, 200/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'german_speaker': True}, 1731/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'vinyl_collector': True}, 6/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'vinyl_collector': True, 'german_speaker': True}, 36/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'queer_friendly': True}, 33/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'queer_friendly': True, 'german_speaker': True}, 41/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True}, 28/16349),  
+                ({'underground_veteran': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 39/16349),  
+                ({'underground_veteran': True, 'international': True}, 724/16349),  
+                ({'underground_veteran': True, 'international': True, 'german_speaker': True}, 226/16349),  
+                ({'underground_veteran': True, 'international': True, 'vinyl_collector': True}, 15/16349),  
+                ({'underground_veteran': True, 'international': True, 'vinyl_collector': True, 'german_speaker': True}, 53/16349),  
+                ({'underground_veteran': True, 'international': True, 'queer_friendly': True}, 24/16349),  
+                ({'underground_veteran': True, 'international': True, 'queer_friendly': True, 'german_speaker': True}, 9/16349),  
+                ({'underground_veteran': True, 'international': True, 'queer_friendly': True, 'vinyl_collector': True}, 17/16349),  
+                ({'underground_veteran': True, 'international': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 30/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True}, 4244/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'german_speaker': True}, 388/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'vinyl_collector': True}, 25/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'vinyl_collector': True, 'german_speaker': True}, 29/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'queer_friendly': True}, 64/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'queer_friendly': True, 'german_speaker': True}, 52/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True}, 40/16349),  
+                ({'underground_veteran': True, 'international': True, 'fashion_forward': True, 'queer_friendly': True, 'vinyl_collector': True, 'german_speaker': True}, 62/16349),  
+            ]
+        else:
+            raise ValueError(f"Unknown scenario: {scenario}. Supported scenarios: 1, 2, 3")
         
         # Normalize the distribution to sum to 1
         total_prob = sum(prob for _, prob in self.distribution)
@@ -78,10 +151,11 @@ class GameSimulator:
 
 
 class SimulatedGame:
-    def __init__(self, constraints: List[Constraint], solver):
+    def __init__(self, constraints: List[Constraint], solver, scenario: int = 1):
         self.constraints = constraints
         self.solver = solver
-        self.simulator = GameSimulator(constraints, total_people=10000)  # Large number to ensure we don't run out
+        self.scenario = scenario
+        self.simulator = GameSimulator(constraints, total_people=10000, scenario=scenario)  # Large number to ensure we don't run out
         
         # Game state
         self.admitted = 0
@@ -201,8 +275,8 @@ class SimulatedGame:
             print(f"  {category}: {count}")
 
 
-def run_simulation(constraints: List[Constraint], solver) -> Dict:
-    game = SimulatedGame(constraints, solver)
+def run_simulation(constraints: List[Constraint], solver, scenario: int = 1) -> Dict:
+    game = SimulatedGame(constraints, solver, scenario)
     results = game.play_game()
     game.print_final_statistics(results)
     return results
