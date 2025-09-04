@@ -1,4 +1,4 @@
-A solver for https://berghain.challenges.listenlabs.ai
+A solver for https://berghain.challenges.listenlabs.ai. See [AGENT.md](AGENT.md) for a description of the task.
 
 ### setup
 

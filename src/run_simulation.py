@@ -5,6 +5,11 @@ from lp_solver import LinearProgrammingSolver
 from dist_solver import DistributionAwareSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 from api import Constraint
+from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
+
+def run_single_simulation(constraints, solver, scenario):
+    return run_simulation(constraints, solver, scenario)
 
 
 def run_simulation(constraints: List[Constraint], solver, scenario: int = 1) -> Dict:
@@ -17,14 +22,9 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
     all_results = []
     successful_runs = 0
     
-    from concurrent.futures import ThreadPoolExecutor
-    
-    def run_single_simulation(i):
-        return run_simulation(constraints, solver, scenario)
-    
-    with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(run_single_simulation, i) for i in range(num_runs)]
-        for future in futures:
+    with ProcessPoolExecutor() as executor:
+        futures = [executor.submit(run_single_simulation, constraints, solver, scenario) for i in range(num_runs)]
+        for future in tqdm(futures, desc="Running simulations"):
             result = future.result()
             all_results.append(result)
             
@@ -32,10 +32,14 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
                 successful_runs += 1
     
     # Calculate averages
+    successful_results = [r for r in all_results if r['success']]
+    
     avg_results = {
         'success_rate': successful_runs / num_runs,
         'avg_admitted': sum(r['admitted'] for r in all_results) / num_runs,
         'avg_rejected': sum(r['rejected'] for r in all_results) / num_runs,
+        'avg_rejected_successful': sum(r['rejected'] for r in successful_results) / len(successful_results) if successful_results else None,
+        'min_rejected_successful': min(r['rejected'] for r in successful_results) if successful_results else None,
         'avg_constraint_satisfaction': {}
     }
     for constraint in constraints:
@@ -51,6 +55,9 @@ def run_multiple_simulations(constraints, solver, num_runs=10, scenario=1):
     print(f"Success Rate: {successful_runs}/{num_runs} ({avg_results['success_rate']*100:.1f}%)")
     print(f"Average Admitted: {avg_results['avg_admitted']:.0f}/1000")
     print(f"Average Rejected: {avg_results['avg_rejected']:.0f}")
+    if successful_results:
+        print(f"Average Rejected (Successful Runs): {avg_results['avg_rejected_successful']:.0f}")
+        print(f"Minimum Rejected (Successful Runs): {avg_results['min_rejected_successful']:.0f}")
     print("\nAverage Constraint Satisfaction:")
     for attr, stats in avg_results['avg_constraint_satisfaction'].items():
         if stats['satisfied'] >= stats['required']:

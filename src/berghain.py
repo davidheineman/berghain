@@ -5,6 +5,8 @@ from solvers import GreedySolver, ConservativeSolver
 from lp_solver import LinearProgrammingSolver
 from constants import get_constraints, get_corr, get_distribution, get_frequencies
 
+DEFAULT_PLAYER_ID = 'e44d1e27-daad-4003-bc7d-fbd97d992269'
+
 def run_trials(scenario: int, player_id: str, solver_class, num_trials: int = 3) -> List[int]:
     """Run multiple trials with rate limit handling."""
     solver = solver_class()
@@ -34,7 +36,7 @@ def main():
     parser.add_argument('--scenario', type=int, choices=[1, 2, 3], default=1,
                        help='Scenario to run (1, 2, or 3)')
     parser.add_argument('--player-id', type=str, 
-                       default='e44d1e27-daad-4003-bc7d-fbd97d992269',
+                       default=DEFAULT_PLAYER_ID,
                        help='Player ID for the game')
     parser.add_argument('--trials', type=int, default=1,
                        help='Number of trials to run')
