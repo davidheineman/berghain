@@ -79,8 +79,12 @@ def main():
                         futures.append(future)
                     
                     for future in tqdm(futures, desc=f"Running batch {batch_num}"):
-                        result = future.result()
-                        batch_results.append(result)
+                        try:
+                            result = future.result()
+                            batch_results.append(result)
+                        except Exception as e:
+                            print(f"Trial failed with error: {e}")
+                            batch_results.append(float('-inf'))
                 
                 all_results.extend(batch_results)
                 
