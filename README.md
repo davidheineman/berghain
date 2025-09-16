@@ -1,4 +1,4 @@
-A solver for https://berghain.challenges.listenlabs.ai. See [AGENT.md](AGENT.md) for a description of the task.
+A solver for https://berghain.challenges.listenlabs.ai.
 
 ### setup
 
@@ -69,8 +69,3 @@ example output:
   Constraints: techno_lover: 631/650 (97.1%) | well_connected: 497/450 (110.4%) | creative: 70/300 (23.3%) | berlin_local: 436/750 (58.1%)
 Game ended with status failed: https://berghain.challenges.listenlabs.ai/game/e039817a-3431-4955-bd97-ec255c625492
 ```
-
-
-
-
-?
